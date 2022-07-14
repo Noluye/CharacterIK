@@ -2,7 +2,6 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 #include "CharacterIK.h"
-#include "FABRIKSolver.h"
 
 static Vector3 ToVector3(m3::Vec3 v)
 {
@@ -51,6 +50,14 @@ public:
 		joints[1] = Joint(m3::Vec3(0, 1, 0), m3::Quat(), 0);
 		joints[2] = Joint(m3::Vec3(0, 2, 0), m3::Quat(), 1);
 		joints[3] = Joint(m3::Vec3(0, 1.5, 0), m3::Quat(), 2);
+	}
+
+	ThreeBoneChain(std::vector<m3::Vec3> positions)
+	{
+		joints[0] = Joint(positions[0], m3::Quat(), -1);
+		joints[1] = Joint(positions[1], m3::Quat(), 0);
+		joints[2] = Joint(positions[2], m3::Quat(), 1);
+		joints[3] = Joint(positions[3], m3::Quat(), 2);
 	}
 
 	void ForwardKinematics()
@@ -117,9 +124,12 @@ public:
 // Global Variables
 // Define the camera to look into our 3d world
 Camera3D g_Camera;
-ThreeBoneChain g_Chain = {};
+ThreeBoneChain g_Chain = {
+	std::vector<m3::Vec3>{ {0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 1.5, 0} }
+};
 Target g_Target = {};
-FABRIKSolver g_FABRIIKSolver = {4};
+cik::FABRIKSolver g_FABRIIKSolver = {4};
+float g_ConvergeSpeed = 5;
 // ----------------------------------------------------
 static void InitProcess()
 {
@@ -150,6 +160,8 @@ static void UpdateProcess()
 	if (IsKeyDown('Z')) g_Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
 
 	g_Target.Update();
+	
+
 	// ---------------------------------------------
 	// IK related
 	for (int i = 0; i < 4; ++i)
@@ -157,33 +169,21 @@ static void UpdateProcess()
 		m3::Transform t = m3::Transform(g_Chain.joints[i].localPosition, g_Chain.joints[i].localRotation);
 		g_FABRIIKSolver.SetLocalTransform(i, t);
 	}
-	g_FABRIIKSolver.Solve(g_Target.GetTransform());
+	bool succeed = g_FABRIIKSolver.Solve(g_Target.GetTransform());
 	for (int i = 0; i < 4; ++i)
 	{
 		m3::Transform t = g_FABRIIKSolver.GetLocalTransform(i);
-		//g_Chain.joints[i].localPosition = t.position;
-		g_Chain.joints[i].localRotation = t.rotation;
+		g_Chain.joints[i].localRotation = m3::Nlerp(g_Chain.joints[i].localRotation, t.rotation, g_ConvergeSpeed * GetFrameTime());
 	}
 	// ---------------------------------------------
-	// 
-	// FABRIK
-	//float maxReach = 0;
-	//for (int i = 0; i < 4; ++i)
-	//{
-
-	//}
-	//m3::Vec3 tipToTarget = target.position - chain.joints[3].position;
-	//// If the target is unreachable
-	//if (LenSq(tipToTarget) > LenSq)
-
 	g_Chain.ForwardKinematics();
+
 }
 
 static void Mode3DProcess()
 {
 	g_Target.Draw();
-	g_Chain.Draw();
-
+	for (int k = 0; k < 3; ++k) g_Chain.Draw();
 	DrawGrid(10, 1.0f);
 }
 

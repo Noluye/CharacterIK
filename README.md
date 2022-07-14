@@ -25,5 +25,5 @@ Double click `Win-Premake-VS2022.bat` or `Win-Premake-VS2019` to generate visual
 
 Sample projects are:
 
-- `ThreeBoneChain.sln`
+- `ThreeBoneChain`
 

@@ -23,18 +23,12 @@ project "ThreeBoneChain"
 	}
 	-------------------------------------------------------------------
 	-- raylib
-	links { "raylib" }
+	links { "raylib", "CharacterIK" }
 
 	filter "system:windows"
 		systemversion "latest"
-		libdirs {"../vendor/raylib/bin/" .. outputdir .. "/raylib"}
+		libdirs {
+			"../vendor/raylib/bin/" .. outputdir .. "/raylib"
+		}
 		dependson { "raylib" }
 		links { "raylib.lib" }
-
-	links { "Math3D" }
-
-	filter "system:windows"
-		systemversion "latest"
-		libdirs {"../vendor/Math3D/bin/" .. outputdir .. "/Math3D"}
-		dependson { "Math3D" }
-		links { "Math3D.lib" }
