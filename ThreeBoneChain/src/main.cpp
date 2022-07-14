@@ -2,6 +2,7 @@
 #define RAYGUI_IMPLEMENTATION
 #include "raygui.h"
 #include "CharacterIK.h"
+#include "FABRIKSolver.h"
 
 static Vector3 ToVector3(m3::Vec3 v)
 {
@@ -106,6 +107,8 @@ public:
 		DrawAxis(position, rotation);
 	}
 
+	m3::Transform GetTransform() { return m3::Transform(position, rotation, m3::Vec3()); }
+
 	m3::Vec3 position;
 	m3::Quat rotation;
 };
@@ -113,34 +116,56 @@ public:
 // ----------------------------------------------------
 // Global Variables
 // Define the camera to look into our 3d world
-Camera3D camera;
-ThreeBoneChain chain = {};
-Target target = {};
+Camera3D g_Camera;
+ThreeBoneChain g_Chain = {};
+Target g_Target = {};
+FABRIKSolver g_FABRIIKSolver = {4};
 // ----------------------------------------------------
 static void InitProcess()
 {
+	// TODO: FullScreen
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
 	InitWindow(screenWidth, screenHeight, "Three Bone Chain");
 	GuiLoadStyle("../vendor/raygui/styles/dark/dark.rgs");
 	// Define the camera to look into our 3d world
-	camera = Camera3D();
-	camera.position = Vector3{ 10.0f, 10.0f, 10.0f }; // Camera position
-	camera.target = Vector3{ 0.0f, 0.0f, 0.0f };      // Camera looking at point
-	camera.up = Vector3{ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-	camera.fovy = 45.0f;                                // Camera field-of-view Y
-	camera.projection = CAMERA_PERSPECTIVE;                   // Camera mode type
-	SetCameraMode(camera, CAMERA_FREE); // Set a free camera mode
+	g_Camera = Camera3D();
+	g_Camera.position = Vector3{ 10.0f, 10.0f, 10.0f }; // Camera position
+	g_Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };      // Camera looking at point
+	g_Camera.up = Vector3{ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
+	g_Camera.fovy = 45.0f;                                // Camera field-of-view Y
+	g_Camera.projection = CAMERA_PERSPECTIVE;                   // Camera mode type
+	SetCameraMode(g_Camera, CAMERA_FREE); // Set a free camera mode
 	SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
+
+	// ---------------------------------------------
+	// IK related
+	g_FABRIIKSolver.Resize(4);
+	// ---------------------------------------------
 }
 
 static void UpdateProcess()
 {
-	UpdateCamera(&camera);          // Update camera
-	if (IsKeyDown('Z')) camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
+	UpdateCamera(&g_Camera);          // Update camera
+	if (IsKeyDown('Z')) g_Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
 
-	target.Update();
-
+	g_Target.Update();
+	// ---------------------------------------------
+	// IK related
+	for (int i = 0; i < 4; ++i)
+	{
+		m3::Transform t = m3::Transform(g_Chain.joints[i].localPosition, g_Chain.joints[i].localRotation);
+		g_FABRIIKSolver.SetLocalTransform(i, t);
+	}
+	g_FABRIIKSolver.Solve(g_Target.GetTransform());
+	for (int i = 0; i < 4; ++i)
+	{
+		m3::Transform t = g_FABRIIKSolver.GetLocalTransform(i);
+		//g_Chain.joints[i].localPosition = t.position;
+		g_Chain.joints[i].localRotation = t.rotation;
+	}
+	// ---------------------------------------------
+	// 
 	// FABRIK
 	//float maxReach = 0;
 	//for (int i = 0; i < 4; ++i)
@@ -151,13 +176,13 @@ static void UpdateProcess()
 	//// If the target is unreachable
 	//if (LenSq(tipToTarget) > LenSq)
 
-	chain.ForwardKinematics();
+	g_Chain.ForwardKinematics();
 }
 
 static void Mode3DProcess()
 {
-	target.Draw();
-	chain.Draw();
+	g_Target.Draw();
+	g_Chain.Draw();
 
 	DrawGrid(10, 1.0f);
 }
@@ -193,7 +218,7 @@ int main()
 		BeginDrawing();
 		ClearBackground(BLACK);
 
-		BeginMode3D(camera);
+		BeginMode3D(g_Camera);
 		Mode3DProcess();
 		EndMode3D();
 
