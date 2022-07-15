@@ -28,13 +28,9 @@ git clone --recurse-submodules https://github.com/Noluye/CharacterIK.git
 
 Double click `Win-Premake-VS2022.bat` or `Win-Premake-VS2019` to generate visual studio projects.
 
-<<<<<<< HEAD
 Set a sample project as startup project to run the application.
 
 ## Sample projects
-=======
-## Sample Projects
->>>>>>> c03f1b17ff8da6e4d3924c9367c2b9b861db9613
 
 ### ThreeBoneChain
 
