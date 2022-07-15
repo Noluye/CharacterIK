@@ -1,95 +1,6 @@
-#include "raylib.h"
-#define RAYGUI_IMPLEMENTATION
-#include "raygui.h"
 #include "CharacterIK.h"
+#include "Samples.h"
 
-static Vector3 ToVector3(m3::Vec3 v)
-{
-	return Vector3(v.x, v.y, v.z);
-}
-
-static void DrawAxis(const m3::Vec3& pos, const m3::Quat rot, const float scale=0.5f)
-{
-	m3::Vec3 axis0 = pos + rot * (m3::Vec3(1.0f, 0.0f, 0.0f) * scale);
-	m3::Vec3 axis1 = pos + rot * (m3::Vec3(0.0f, 1.0f, 0.0f) * scale);
-	m3::Vec3 axis2 = pos + rot * (m3::Vec3(0.0f, 0.0f, 1.0f) * scale);
-
-	DrawLine3D(ToVector3(pos), ToVector3(axis0), RED);
-	DrawLine3D(ToVector3(pos), ToVector3(axis1), GREEN);
-	DrawLine3D(ToVector3(pos), ToVector3(axis2), BLUE);
-}
-
-struct Joint
-{
-	m3::Vec3 position;
-	m3::Quat rotation;
-	m3::Vec3 localPosition;
-	m3::Quat localRotation;
-	int parent;
-
-	Joint() 
-		:position(), rotation(), localPosition(m3::Vec3()), localRotation(m3::Quat()), parent(-1)
-	{}
-	Joint(m3::Vec3 pos, m3::Quat rot, int p)
-		:position(), rotation(), localPosition(pos), localRotation(rot), parent(p)
-	{}
-
-	void Draw()
-	{
-		DrawSphereWires(ToVector3(position), 0.1, 10, 10, GOLD);
-		DrawAxis(position, rotation);
-	}
-};
-
-class ThreeBoneChain
-{
-public:
-	ThreeBoneChain()
-	{
-		joints[0] = Joint(m3::Vec3(), m3::Quat(), -1);
-		joints[1] = Joint(m3::Vec3(0, 1, 0), m3::Quat(), 0);
-		joints[2] = Joint(m3::Vec3(0, 2, 0), m3::Quat(), 1);
-		joints[3] = Joint(m3::Vec3(0, 1.5, 0), m3::Quat(), 2);
-	}
-
-	ThreeBoneChain(std::vector<m3::Vec3> positions)
-	{
-		joints[0] = Joint(positions[0], m3::Quat(), -1);
-		joints[1] = Joint(positions[1], m3::Quat(), 0);
-		joints[2] = Joint(positions[2], m3::Quat(), 1);
-		joints[3] = Joint(positions[3], m3::Quat(), 2);
-	}
-
-	void ForwardKinematics()
-	{
-		for (int i = 0; i < 4; ++i)
-		{
-			int p = joints[i].parent;
-			if (p != -1)
-			{
-				joints[i].position = joints[p].position + joints[p].rotation * joints[i].localPosition;
-				joints[i].rotation = joints[p].rotation * joints[i].localRotation;
-			}
-			else
-			{
-				joints[i].position = joints[i].localPosition;
-				joints[i].rotation = joints[i].localRotation;
-			}
-		}
-	}
-
-	void Draw()
-	{
-		for (int i = 0; i < 4; ++i)
-		{
-			int p = joints[i].parent;
-			if (p != -1) DrawCylinderEx(ToVector3(joints[i].position), ToVector3(joints[p].position), 0.04, 0.04, 10, DARKBLUE);
-			joints[i].Draw();
-		}
-	}
-
-	Joint joints[4];
-};
 
 class Target
 {
@@ -103,9 +14,9 @@ public:
 		float leftMargin = 70;
 		int i = 0;
 		auto topMargin = [](int i) {return 170.0f + i * 30; };
-		position.x = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20}, "Target X", TextFormat("%i", (float)position.x), position.x, -10, 10);
-		position.y = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Target Y", TextFormat("%i", (float)position.y), position.y, -10, 10);
-		position.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Target Z", TextFormat("%i", (float)position.z), position.z, -10, 10);
+		position.x = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20}, "Target X", TextFormat("%f", (float)position.x), position.x, -10, 10);
+		position.y = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Target Y", TextFormat("%f", (float)position.y), position.y, -10, 10);
+		position.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Target Z", TextFormat("%f", (float)position.z), position.z, -10, 10);
 	}
 
 	void Draw()
@@ -124,7 +35,7 @@ public:
 // Global Variables
 // Define the camera to look into our 3d world
 Camera3D g_Camera;
-ThreeBoneChain g_Chain = {
+NJointChain<4> g_Chain = {
 	std::vector<m3::Vec3>{ {0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 1.5, 0} }
 };
 Target g_Target = {};
@@ -137,7 +48,7 @@ static void InitProcess()
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
 	InitWindow(screenWidth, screenHeight, "Three Bone Chain");
-	GuiLoadStyle("../vendor/raygui/styles/dark/dark.rgs");
+	GuiLoadStyle("../../vendor/raygui/styles/dark/dark.rgs");
 	// Define the camera to look into our 3d world
 	g_Camera = Camera3D();
 	g_Camera.position = Vector3{ 10.0f, 10.0f, 10.0f }; // Camera position
@@ -160,30 +71,24 @@ static void UpdateProcess()
 	if (IsKeyDown('Z')) g_Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
 
 	g_Target.Update();
-	
-
 	// ---------------------------------------------
 	// IK related
-	for (int i = 0; i < 4; ++i)
-	{
-		m3::Transform t = m3::Transform(g_Chain.joints[i].localPosition, g_Chain.joints[i].localRotation);
-		g_FABRIIKSolver.SetLocalTransform(i, t);
-	}
+	for (int i = 0; i < g_Chain.m_JointNum; ++i) g_FABRIIKSolver.SetLocalTransform(i, g_Chain.GetLocalTransform(i));
 	bool succeed = g_FABRIIKSolver.Solve(g_Target.GetTransform());
-	for (int i = 0; i < 4; ++i)
+	for (int i = 0; i < g_Chain.m_JointNum; ++i)
 	{
 		m3::Transform t = g_FABRIIKSolver.GetLocalTransform(i);
-		g_Chain.joints[i].localRotation = m3::Nlerp(g_Chain.joints[i].localRotation, t.rotation, g_ConvergeSpeed * GetFrameTime());
+		m3::Quat q = m3::Nlerp(g_Chain.GetLocalRotation(i), t.rotation, g_ConvergeSpeed * GetFrameTime());
+		g_Chain.SetLocalRotation(i, q);
 	}
 	// ---------------------------------------------
 	g_Chain.ForwardKinematics();
-
 }
 
 static void Mode3DProcess()
 {
 	g_Target.Draw();
-	for (int k = 0; k < 3; ++k) g_Chain.Draw();
+	g_Chain.Draw();
 	DrawGrid(10, 1.0f);
 }
 

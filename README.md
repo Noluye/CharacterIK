@@ -7,9 +7,14 @@ Inverse kinematics solvers and its application in character animation.
 
 ## Dependencies
 
+CharacterIK library only depends on:
+
+- [Math3D](https://github.com/Noluye/Math3D)
+
+There are various sample projects, which depend on:
+
 - [raylib](https://github.com/raysan5/raylib)
 - [raygui](https://github.com/raysan5/raygui)
-- [Math3D](https://github.com/Noluye/Math3D)
 
 All dependencies are set as submodules, so you can automatically set them up.
 
@@ -23,7 +28,9 @@ git clone --recurse-submodules https://github.com/Noluye/CharacterIK.git
 
 Double click `Win-Premake-VS2022.bat` or `Win-Premake-VS2019` to generate visual studio projects.
 
-## Samples Projects
+Set a sample project as startup project to run the application.
+
+## Sample projects
 
 ### ThreeBoneChain
 

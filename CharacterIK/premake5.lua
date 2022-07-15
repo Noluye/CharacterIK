@@ -10,7 +10,7 @@ project "CharacterIK"
 	pchheader "cikpch.h"
 	pchsource "src/cikpch.cpp"
 
-	files { "src/**.cpp", "src/**.h", "premake5.lua" }
+	files { "src/**.cpp", "src/**.h", "premake5.lua", "../premake5.lua" }
 
 	includedirs {
 		"src",

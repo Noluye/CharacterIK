@@ -8,7 +8,7 @@ namespace cik
 	class FABRIKSolver
 	{
 	public:
-		FABRIKSolver(float numStemps = 15, float threshold = 1e-3f);
+		FABRIKSolver(float numStemps = 15, float threshold = 1e-6f);
 
 
 		inline m3::Transform GetLocalTransform(int index) { return m_IKChain[index]; }

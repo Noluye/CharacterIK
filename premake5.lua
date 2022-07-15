@@ -2,7 +2,7 @@ workspace "CharacterIK"
 	configurations { "Debug", "Release", "Dist" }
 	platforms "x64"
 	architecture "x86_64"
-	startproject "ThreeBoneChain"
+	startproject "Sandbox"
 
 	filter "configurations:Debug"
 		defines { "DEBUG" }
@@ -30,4 +30,11 @@ workspace "CharacterIK"
 	group ""
 
 include "CharacterIK"
-include "ThreeBoneChain"
+
+group "Samples"
+include "Samples/Sandbox"
+include "Samples/ThreeBoneChain"
+include "Samples/ConstraintSettings"
+group ""
+
+

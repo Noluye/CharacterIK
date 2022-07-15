@@ -10,16 +10,23 @@ project "ThreeBoneChain"
 	defines{ "_CRT_SECURE_NO_WARNINGS" }
 	linkoptions { "-IGNORE:4099" }
 
-	files { "src/**.c", "src/**.h", "src/**.cpp", "premake5.lua" }
+	files {
+		"src/**.h",
+		"src/**.cpp",
+		"../Core/src/**.h",
+		"../Core/src/**.cpp",
+		"premake5.lua"
+	}
 
 	includedirs
 	{
 		"src",
-		"../vendor/raylib/src",
-		"../vendor/raylib/src/external/glfw/include",
-		"../vendor/raygui/src",
-		"../vendor/Math3D/Math3D/src",
-		"../CharacterIK/src"
+		"../Core/src",
+		"../../vendor/raylib/src",
+		"../../vendor/raylib/src/external/glfw/include",
+		"../../vendor/raygui/src",
+		"../../vendor/Math3D/Math3D/src",
+		"../../CharacterIK/src"
 	}
 	-------------------------------------------------------------------
 	-- raylib
@@ -28,7 +35,7 @@ project "ThreeBoneChain"
 	filter "system:windows"
 		systemversion "latest"
 		libdirs {
-			"../vendor/raylib/bin/" .. outputdir .. "/raylib"
+			"../../vendor/raylib/bin/" .. outputdir .. "/raylib"
 		}
 		dependson { "raylib" }
 		links { "raylib.lib" }
