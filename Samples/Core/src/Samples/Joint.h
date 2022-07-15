@@ -14,9 +14,9 @@ struct Joint
 		:localTransform(t)
 	{}
 
-	void Draw()
+	void Draw(Color c = GOLD)
 	{
-		DrawSphereWires(ToVector3(transform.position), 0.1, 10, 10, GOLD);
+		DrawSphereWires(ToVector3(transform.position), 0.1, 10, 10, c);
 		DrawAxis(transform.position, transform.rotation);
 	}
 };

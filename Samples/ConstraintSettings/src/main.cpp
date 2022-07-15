@@ -1,14 +1,15 @@
 #include "CharacterIK.h"
 #include "Samples.h"
 
+#include <sstream>
+
+#define JOINT_NUM 4
 // ----------------------------------------------------
 // Global Variables
 // Define the camera to look into our 3d world
 Camera3D g_Camera;
-NJointChain<4> g_Chain = {
-	std::vector<m3::Vec3>{ {0, 0, 0}, {0, 1, 0}, {0, 2, 0}, {0, 1.5, 0} }
-};
-float g_ConvergeSpeed = 5;
+NJointChain<JOINT_NUM> g_Chain = {};
+int g_ChosedJointIndex = -1;
 // ----------------------------------------------------
 static void InitProcess()
 {
@@ -16,7 +17,7 @@ static void InitProcess()
 	const int screenWidth = 1600;
 	const int screenHeight = 900;
 	InitWindow(screenWidth, screenHeight, "Three Bone Chain");
-	GuiLoadStyle("../vendor/raygui/styles/dark/dark.rgs");
+	GuiLoadStyle("../../vendor/raygui/styles/dark/dark.rgs");
 	// Define the camera to look into our 3d world
 	g_Camera = Camera3D();
 	g_Camera.position = Vector3{ 10.0f, 10.0f, 10.0f }; // Camera position
@@ -38,7 +39,7 @@ static void UpdateProcess()
 
 static void Mode3DProcess()
 {
-	g_Chain.Draw();
+	g_Chain.Draw(g_ChosedJointIndex);
 	DrawGrid(10, 1.0f);
 }
 
@@ -53,6 +54,19 @@ static void DrawProcess()
 	DrawText("- Alt + Mouse Wheel Pressed to Rotate", 40, 80, 10, GRAY);
 	DrawText("- Alt + Ctrl + Mouse Wheel Pressed for Smooth Zoom", 40, 100, 10, GRAY);
 	DrawText("- Z to zoom to (0, 0, 0)", 40, 120, 10, GRAY);
+
+	static bool dropDownJointEditMode = false;
+	GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
+	std::stringstream ss;
+	for (int i = 0; i < JOINT_NUM; ++i)
+	{
+		ss << "Joint " << i;
+		if (i != JOINT_NUM - 1) ss << ";";
+	}
+
+	if (GuiDropdownBox(Rectangle { GetScreenWidth() - 150.f, 20, 100, 30},
+		ss.str().c_str(),
+		&g_ChosedJointIndex, dropDownJointEditMode)) dropDownJointEditMode = !dropDownJointEditMode;
 }
 
 int main()
