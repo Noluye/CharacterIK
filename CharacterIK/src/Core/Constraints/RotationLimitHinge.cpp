@@ -7,6 +7,7 @@ namespace cik
 		RotationLimit()
 	{
 	}
+
 	m3::Quat RotationLimitHinge::LimitRotation(m3::Quat rotation)
 	{
 		if (m_AngleMin == 0 && m_AngleMax == 0) return AngleAxis(axis, 0);
@@ -20,13 +21,13 @@ namespace cik
 		//return AngleAxis(axis, m3::Deg2Rad(lastAngle));
 	}
 
-	m3::Quat RotationLimitHinge::LimitRotation(m3::Quat lclRotation, m3::Quat glbRotation, m3::Quat parentGlbRotation)
-	{
-		if (m_AngleMin == 0 && m_AngleMax == 0) return AngleAxis(axis, 0);
+	//m3::Quat RotationLimitHinge::LimitRotation(m3::Quat lclRotation, m3::Quat glbRotation, m3::Quat parentGlbRotation)
+	//{
+	//	if (m_AngleMin == 0 && m_AngleMax == 0) return AngleAxis(axis, 0);
 
-		m3::Vec3 currHinge = glbRotation * axis;
-		m3::Vec3 desireHinge = parentGlbRotation * axis;
+	//	m3::Vec3 currHinge = glbRotation * axis;
+	//	m3::Vec3 desireHinge = parentGlbRotation * axis;
 
-		return lclRotation * m3::FromTo(currHinge, desireHinge);
-	}
+	//	return lclRotation * m3::FromTo(currHinge, desireHinge);
+	//}
 }

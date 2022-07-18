@@ -45,6 +45,34 @@ static void UpdateProcess()
 static void Mode3DProcess()
 {
 	g_Chain.Draw(g_ChosedJointIndex);
+
+	if (g_ChosedJointIndex != -1)
+	{
+		auto pos = g_Chain[g_ChosedJointIndex].transform.position;
+		auto rot = g_Chain[g_ChosedJointIndex].transform.rotation;
+		//m3::Vec3 axis = rot * g_Hinge.axis;
+		m3::Vec3 axis = rot * m3::Vec3(0.0, 0.0, 1.0);
+
+		//auto rot2 = FromTo(m3::Vec3(0.0, 0.0, 1.0), g_Hinge.axis) * rot;
+		auto rot2 = FromTo(m3::Vec3(0.0, 0.0, 1.0), m3::Vec3(0.0, 0.0, 1.0)) * rot;
+		DrawCircle3D(ToVector3(pos),
+			0.4, ToVector3(GetAxis(rot2)),
+			GetAngle(rot2, true), GREEN);
+
+		// range
+		DrawLine3D(ToVector3(pos), ToVector3(
+			pos + 0.4f * (m3::AngleAxis(axis, g_Hinge.m_AngleMin, true) * rot *  m3::Vec3(0.0f, 1.0f, 0.0f))), ORANGE);
+		DrawLine3D(ToVector3(pos), ToVector3(
+			pos + 0.4f * (m3::AngleAxis(axis, g_Hinge.m_AngleMax, true) * rot * m3::Vec3(0.0f, 1.0f, 0.0f))), ORANGE);
+		for (int i = g_Hinge.m_AngleMin + 5; i < g_Hinge.m_AngleMax; i += 5)
+		{
+			DrawLine3D(ToVector3(pos), ToVector3(
+				pos + 0.4f * (m3::AngleAxis(axis, i, true) * rot * m3::Vec3(0.0f, 1.0f, 0.0f))), ORANGE);
+		}
+
+	}
+	
+
 	DrawGrid(10, 1.0f);
 }
 
@@ -88,20 +116,18 @@ static void DrawProcess()
 		euler.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation Z", TextFormat("%f", (float)euler.z), euler.z, -180, 180);
 		
 		m3::Vec3 eulerRad = m3::Deg2Rad(euler);
-		m3::Quat targetQ = m3::QuatFromEulerXYZ(eulerRad.x, eulerRad.y, eulerRad.z);
+		m3::Quat targetQ = m3::QuatFromEulerXYZ(eulerRad.z, eulerRad.y, eulerRad.x);
 
 		g_Chain.SetLocalRotation(g_ChosedJointIndex, targetQ);  // TODO: outer -> inner
 
 		g_LimitChecked[g_ChosedJointIndex] = GuiCheckBox(Rectangle { leftMargin, topMargin(i++), 15, 15 }, "Apply Constraint", g_LimitChecked[g_ChosedJointIndex]);
 		if (g_LimitChecked[g_ChosedJointIndex])
 		{
-			g_Chain.ForwardKinematics();
-			auto currLclRot = g_Chain.GetLocalRotation(g_ChosedJointIndex);
-			auto currGlbRot = g_Chain.GetGlobalRotation(g_ChosedJointIndex);
-			auto parentGlbRot = g_Chain.GetParentGlobalRotation(g_ChosedJointIndex);
-			auto q = g_Hinge.LimitRotation(currLclRot, currGlbRot, parentGlbRot);
-			g_Chain.SetLocalRotation(g_ChosedJointIndex, q);
+			//auto q = g_Hinge.LimitRotation(currLclRot, currGlbRot, parentGlbRot);
+			//g_Chain.SetLocalRotation(g_ChosedJointIndex, q);
 		}
+
+		
 		
 	}
 

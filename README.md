@@ -30,6 +30,13 @@ Double click `Win-Premake-VS2022.bat` or `Win-Premake-VS2019` to generate visual
 
 Set a sample project as startup project to run the application.
 
+### How to update the repository and its dependencies
+
+```shell
+git pull
+git submodule update --remote
+```
+
 ## Sample projects
 
 ### ThreeBoneChain

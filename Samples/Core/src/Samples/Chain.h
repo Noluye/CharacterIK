@@ -28,6 +28,8 @@ public:
 		ForwardKinematics();
 	}
 
+	inline Joint& operator[](int i) { return m_Joints[i]; }
+
 	void ForwardKinematics()
 	{
 		for (int i = 0; i < N; ++i)
