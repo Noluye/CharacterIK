@@ -116,7 +116,7 @@ static void DrawProcess()
 		euler.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation Z", TextFormat("%f", (float)euler.z), euler.z, -180, 180);
 		
 		m3::Vec3 eulerRad = m3::Deg2Rad(euler);
-		m3::Quat targetQ = m3::QuatFromEulerXYZ(eulerRad.z, eulerRad.y, eulerRad.x);
+		m3::Quat targetQ = m3::QuatFromEulerXYZ(eulerRad);
 
 		g_Chain.SetLocalRotation(g_ChosedJointIndex, targetQ);  // TODO: outer -> inner
 
