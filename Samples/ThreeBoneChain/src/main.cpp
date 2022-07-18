@@ -82,7 +82,6 @@ static void UpdateProcess()
 		g_Chain.SetLocalRotation(i, q);
 	}
 	// ---------------------------------------------
-	g_Chain.ForwardKinematics();
 }
 
 static void Mode3DProcess()

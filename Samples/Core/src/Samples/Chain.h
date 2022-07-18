@@ -14,6 +14,7 @@ public:
 			m_Joints[i] = Joint(t);
 			m_Parents[i] = i - 1;
 		}
+		ForwardKinematics();
 	}
 
 	NJointChain(std::vector<m3::Vec3> positions)
@@ -24,6 +25,7 @@ public:
 			m_Joints[i] = Joint(t);
 			m_Parents[i] = i - 1;
 		}
+		ForwardKinematics();
 	}
 
 	void ForwardKinematics()
@@ -47,11 +49,35 @@ public:
 	inline void SetLocalRotation(int i, const m3::Quat& q)
 	{
 		m_Joints[i].localTransform.rotation = q;
+		// update current and children' global rotation
+		for (int j = i; j < m_JointNum; ++j) {
+			int p = m_Parents[j];
+			if (p == -1)
+			{
+				m_Joints[j].transform = m_Joints[j].localTransform;
+			}
+			else
+			{
+				m_Joints[j].transform = m_Joints[p].transform * m_Joints[j].localTransform;
+			}
+		}
 	}
 
 	inline m3::Quat GetLocalRotation(int i)
 	{
 		return m_Joints[i].localTransform.rotation;
+	}
+
+	inline m3::Quat GetGlobalRotation(int i)
+	{
+		return m_Joints[i].transform.rotation;
+	}
+
+	inline m3::Quat GetParentGlobalRotation(int i)
+	{
+		if (m_Parents[i] == -1) return m3::Quat();
+
+		return m_Joints[m_Parents[i]].transform.rotation;
 	}
 
 	inline m3::Transform GetLocalTransform(int i)
@@ -71,7 +97,6 @@ public:
 	}
 	
 	int m_JointNum = N;
-
 private:
 	Joint m_Joints[N];
 	int m_Parents[N];

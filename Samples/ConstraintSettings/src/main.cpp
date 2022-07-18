@@ -10,6 +10,9 @@
 Camera3D g_Camera;
 NJointChain<JOINT_NUM> g_Chain = {};
 int g_ChosedJointIndex = -1;
+cik::RotationLimitHinge g_Hinge = {};
+m3::Vec3 g_Eulers[JOINT_NUM] = {};
+bool g_LimitChecked[JOINT_NUM] = { false };
 // ----------------------------------------------------
 static void InitProcess()
 {
@@ -27,14 +30,16 @@ static void InitProcess()
 	g_Camera.projection = CAMERA_PERSPECTIVE;                   // Camera mode type
 	SetCameraMode(g_Camera, CAMERA_FREE); // Set a free camera mode
 	SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
+
+	// limit related
+	g_Hinge.m_AngleMin = -45;
+	g_Hinge.m_AngleMax = 90;
 }
 
 static void UpdateProcess()
 {
 	UpdateCamera(&g_Camera);          // Update camera
 	if (IsKeyDown('Z')) g_Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
-	g_Chain.ForwardKinematics();
-
 }
 
 static void Mode3DProcess()
@@ -55,6 +60,7 @@ static void DrawProcess()
 	DrawText("- Alt + Ctrl + Mouse Wheel Pressed for Smooth Zoom", 40, 100, 10, GRAY);
 	DrawText("- Z to zoom to (0, 0, 0)", 40, 120, 10, GRAY);
 
+	// joint drop down
 	static bool dropDownJointEditMode = false;
 	GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
 	std::stringstream ss;
@@ -67,6 +73,39 @@ static void DrawProcess()
 	if (GuiDropdownBox(Rectangle { GetScreenWidth() - 150.f, 20, 100, 30},
 		ss.str().c_str(),
 		&g_ChosedJointIndex, dropDownJointEditMode)) dropDownJointEditMode = !dropDownJointEditMode;
+
+	// edit joint rotation
+	if (g_ChosedJointIndex >= 0 && g_ChosedJointIndex < JOINT_NUM)
+	{
+		m3::Vec3& euler = g_Eulers[g_ChosedJointIndex];
+
+		float leftMargin = 70;
+		int i = 0;
+		auto topMargin = [](int i) {return 170.0f + i * 30; };
+
+		euler.x = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation X", TextFormat("%f", (float)euler.x), euler.x, -180, 180);
+		euler.y = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation Y", TextFormat("%f", (float)euler.y), euler.y, -180, 180);
+		euler.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation Z", TextFormat("%f", (float)euler.z), euler.z, -180, 180);
+		
+		m3::Vec3 eulerRad = m3::Deg2Rad(euler);
+		m3::Quat targetQ = m3::QuatFromEulerXYZ(eulerRad.x, eulerRad.y, eulerRad.z);
+
+		g_Chain.SetLocalRotation(g_ChosedJointIndex, targetQ);  // TODO: outer -> inner
+
+		g_LimitChecked[g_ChosedJointIndex] = GuiCheckBox(Rectangle { leftMargin, topMargin(i++), 15, 15 }, "Apply Constraint", g_LimitChecked[g_ChosedJointIndex]);
+		if (g_LimitChecked[g_ChosedJointIndex])
+		{
+			g_Chain.ForwardKinematics();
+			auto currLclRot = g_Chain.GetLocalRotation(g_ChosedJointIndex);
+			auto currGlbRot = g_Chain.GetGlobalRotation(g_ChosedJointIndex);
+			auto parentGlbRot = g_Chain.GetParentGlobalRotation(g_ChosedJointIndex);
+			auto q = g_Hinge.LimitRotation(currLclRot, currGlbRot, parentGlbRot);
+			g_Chain.SetLocalRotation(g_ChosedJointIndex, q);
+		}
+		
+	}
+
+	
 }
 
 int main()
