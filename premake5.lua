@@ -34,8 +34,8 @@ include "CharacterIK"
 group "Samples"
 include "Samples/Sandbox"
 include "Samples/ThreeBoneChain"
-include "Samples/EulerAngles"
-include "Samples/ConstraintSettings"
+include "Samples/ConstraintPlane"
+include "Samples/ConstraintThreeBoneChain"
 group ""
 
 

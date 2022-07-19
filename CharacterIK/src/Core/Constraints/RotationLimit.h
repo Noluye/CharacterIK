@@ -13,10 +13,7 @@ namespace cik
 			m_DefaultLocalRotation = localRotation;
 		}
 		m3::Quat Apply(m3::Quat localRotation);
-		/*
-		 * An arbitrary secondary axis that we get by simply switching the axes
-		 * */
-		inline m3::Vec3 SecondaryAxis() { return m3::Vec3(axis.y, axis.z, axis.x); }
+		inline m3::Vec3 SecondaryAxis() { return m3::Vec3(axis.y, -axis.z, axis.x); }
 	public:
 		m3::Vec3 axis;
 	protected:

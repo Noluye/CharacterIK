@@ -1,6 +1,5 @@
 #include "CharacterIK.h"
 #include "Samples.h"
-#include "rlgl.h"
 
 #include <sstream>
 
@@ -9,13 +8,11 @@
 // Global Variables
 // Define the camera to look into our 3d world
 Camera3D g_Camera;
-Model g_ModelPlane;
-Texture2D g_Texture;
-m3::Vec3 g_Position = { 0.0f, 0.1f, 0.0f };
-m3::Vec3 g_Euler = {};
-m3::Vec3 g_RotEdit = {};
-m3::Quat g_Rotation = {};
-float g_Scale = 0.1f;
+NJointChain<JOINT_NUM> g_Chain = {};
+int g_ChosedJointIndex = -1;
+cik::RotationLimitHinge g_RotationLimitHinge = {};
+m3::Vec3 g_Eulers[JOINT_NUM] = {};
+bool g_LimitChecked[JOINT_NUM] = { false };
 // ----------------------------------------------------
 static void InitProcess()
 {
@@ -34,11 +31,9 @@ static void InitProcess()
 	SetCameraMode(g_Camera, CAMERA_FREE); // Set a free camera mode
 	SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
 
-	// plane model
-	g_ModelPlane = LoadModel("../../vendor/raylib/examples/models/resources/models/obj/plane.obj");  // Load model
-	g_Texture = LoadTexture("../../vendor/raylib/examples/models/resources/models/obj/plane_diffuse.png"); // Load model texture
-	g_ModelPlane.materials[0].maps[MATERIAL_MAP_DIFFUSE].texture = g_Texture;            // Set map diffuse texture
-	rlSetLineWidth(4);
+	// limit related
+	g_RotationLimitHinge.m_AngleMin = -45;
+	g_RotationLimitHinge.m_AngleMax = 90;
 }
 
 static void UpdateProcess()
@@ -49,9 +44,35 @@ static void UpdateProcess()
 
 static void Mode3DProcess()
 {
-	DrawModelEx(g_ModelPlane, ToVector3(g_Position), ToVector3(m3::GetAxis(g_Rotation)), m3::GetAngle(g_Rotation, true), Vector3(g_Scale, g_Scale, g_Scale), WHITE);
+	g_Chain.Draw(g_ChosedJointIndex);
+
+	if (g_ChosedJointIndex != -1)
+	{
+		auto pos = g_Chain[g_ChosedJointIndex].transform.position;
+		auto rot = g_Chain[g_ChosedJointIndex].transform.rotation;
+		//m3::Vec3 axis = rot * g_Hinge.axis;
+		m3::Vec3 axis = rot * m3::Vec3(0.0, 0.0, 1.0);
+
+		//auto rot2 = FromTo(m3::Vec3(0.0, 0.0, 1.0), g_Hinge.axis) * rot;
+		auto rot2 = FromTo(m3::Vec3(0.0, 0.0, 1.0), m3::Vec3(0.0, 0.0, 1.0)) * rot;
+		DrawCircle3D(ToVector3(pos),
+			0.4, ToVector3(GetAxis(rot2)),
+			GetAngle(rot2, true), GREEN);
+
+		// range
+		DrawLine3D(ToVector3(pos), ToVector3(
+			pos + 0.4f * (m3::AngleAxis(axis, g_RotationLimitHinge.m_AngleMin, true) * rot *  m3::Vec3(0.0f, 1.0f, 0.0f))), ORANGE);
+		DrawLine3D(ToVector3(pos), ToVector3(
+			pos + 0.4f * (m3::AngleAxis(axis, g_RotationLimitHinge.m_AngleMax, true) * rot * m3::Vec3(0.0f, 1.0f, 0.0f))), ORANGE);
+		for (int i = g_RotationLimitHinge.m_AngleMin + 5; i < g_RotationLimitHinge.m_AngleMax; i += 5)
+		{
+			DrawLine3D(ToVector3(pos), ToVector3(
+				pos + 0.4f * (m3::AngleAxis(axis, i, true) * rot * m3::Vec3(0.0f, 1.0f, 0.0f))), ORANGE);
+		}
+
+	}
 	
-	DrawAxis(g_Position, g_Rotation, 5);
+
 	DrawGrid(10, 1.0f);
 }
 
@@ -67,49 +88,49 @@ static void DrawProcess()
 	DrawText("- Alt + Ctrl + Mouse Wheel Pressed for Smooth Zoom", 40, 100, 10, GRAY);
 	DrawText("- Z to zoom to (0, 0, 0)", 40, 120, 10, GRAY);
 
-	const float leftMargin = 90;
+	// joint drop down
+	static bool dropDownJointEditMode = false;
+	GuiSetStyle(DROPDOWNBOX, TEXT_ALIGNMENT, TEXT_ALIGN_LEFT);
+	std::stringstream ss;
+	for (int i = 0; i < JOINT_NUM; ++i)
+	{
+		ss << "Joint " << i;
+		if (i != JOINT_NUM - 1) ss << ";";
+	}
+
+	if (GuiDropdownBox(Rectangle { GetScreenWidth() - 150.f, 20, 100, 30},
+		ss.str().c_str(),
+		&g_ChosedJointIndex, dropDownJointEditMode)) dropDownJointEditMode = !dropDownJointEditMode;
+
 	// edit joint rotation
+	if (g_ChosedJointIndex >= 0 && g_ChosedJointIndex < JOINT_NUM)
 	{
-		int i = 0;
-		auto topMargin = [](int i) {return 190.0f + i * 30; };
+		m3::Vec3& euler = g_Eulers[g_ChosedJointIndex];
 
-		GuiGroupBox(Rectangle{ 10, topMargin(0) - 30, 320, 150 }, "Rotation Operation");
-		float operationSpeed = 40 * GetFrameTime();
-		g_RotEdit.x = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Axis X  -", "+", g_RotEdit.x, -operationSpeed, operationSpeed);
-		if (g_RotEdit.x != 0)
-		{
-			g_Rotation = g_Rotation * m3::AngleAxis(m3::Vec3(1.0, 0.0, 0.0), g_RotEdit.x, true);
-			g_Euler = m3::ToEuler(g_Rotation, "XYZ", true);
-			g_RotEdit.x = 0;
-		}
-		g_RotEdit.y = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Axis Y  -", "+", g_RotEdit.y, -operationSpeed, operationSpeed);
-		if (g_RotEdit.y != 0)
-		{
-			g_Rotation = g_Rotation * m3::AngleAxis(m3::Vec3(0.0, 1.0, 0.0), g_RotEdit.y, true);
-			g_Euler = m3::ToEuler(g_Rotation, "XYZ", true);
-			g_RotEdit.y = 0;
-		}
-		g_RotEdit.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Axis Z  -", "+", g_RotEdit.z, -operationSpeed, operationSpeed);
-		if (g_RotEdit.z != 0)
-		{
-			g_Rotation = g_Rotation * m3::AngleAxis(m3::Vec3(0.0, 0.0, 1.0), g_RotEdit.z, true);
-			g_Euler = m3::ToEuler(g_Rotation, "XYZ", true);
-			g_RotEdit.z = 0;
-		}
-	}
-	// euler
-	{
+		float leftMargin = 70;
 		int i = 0;
-		auto topMargin = [](int i) {return 360.0f + i * 30; };
+		auto topMargin = [](int i) {return 170.0f + i * 30; };
 
-		GuiGroupBox(Rectangle{ 10, topMargin(0) - 30, 320, 150 }, "Euler Angles");
-		auto eulerEdit = g_Euler;
-		eulerEdit.x = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Euler X", TextFormat("%3.1f", (float)eulerEdit.x), eulerEdit.x, -180, 180);
-		eulerEdit.y = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Euler Y", TextFormat("%3.1f", (float)eulerEdit.y), eulerEdit.y, -180, 180);
-		eulerEdit.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Euler Z", TextFormat("%3.1f", (float)eulerEdit.z), eulerEdit.z, -180, 180);
-		if (g_Euler != eulerEdit) g_Rotation = m3::QuatFromEulerXYZ(m3::Deg2Rad(eulerEdit));
-		g_Euler = eulerEdit;
+		euler.x = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation X", TextFormat("%f", (float)euler.x), euler.x, -180, 180);
+		euler.y = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation Y", TextFormat("%f", (float)euler.y), euler.y, -180, 180);
+		euler.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Rotation Z", TextFormat("%f", (float)euler.z), euler.z, -180, 180);
+		
+		m3::Vec3 eulerRad = m3::Deg2Rad(euler);
+		m3::Quat targetQ = m3::QuatFromEulerXYZ(eulerRad);
+
+		g_Chain.SetLocalRotation(g_ChosedJointIndex, targetQ);  // TODO: outer -> inner
+
+		g_LimitChecked[g_ChosedJointIndex] = GuiCheckBox(Rectangle { leftMargin, topMargin(i++), 15, 15 }, "Apply Constraint", g_LimitChecked[g_ChosedJointIndex]);
+		if (g_LimitChecked[g_ChosedJointIndex])
+		{
+			//auto q = g_Hinge.LimitRotation(currLclRot, currGlbRot, parentGlbRot);
+			//g_Chain.SetLocalRotation(g_ChosedJointIndex, q);
+		}
+
+		
+		
 	}
+
 	
 }
 
