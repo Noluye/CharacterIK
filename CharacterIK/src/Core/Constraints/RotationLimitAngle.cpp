@@ -4,8 +4,8 @@
 namespace cik
 {
 
-	RotationLimitAngle::RotationLimitAngle() :
-		RotationLimit()
+	RotationLimitAngle::RotationLimitAngle(float swingLimit) :
+		RotationLimit(), m_SwingLimit(swingLimit)
 	{
 	}
 

@@ -3,8 +3,8 @@
 
 namespace cik
 {
-	RotationLimitHinge::RotationLimitHinge():
-		RotationLimit()
+	RotationLimitHinge::RotationLimitHinge(float angleMin, float angleMax):
+		RotationLimit(), m_AngleMin(angleMin), m_AngleMax(angleMax)
 	{
 	}
 

@@ -6,10 +6,10 @@ namespace cik
 	class RotationLimitHinge : public RotationLimit
 	{
 	public:
-		RotationLimitHinge();
+		RotationLimitHinge(float angleMin=-45, float angleMax=90);
 	public:
-		float m_AngleMin = -45;
-		float m_AngleMax = 90;
+		float m_AngleMin;
+		float m_AngleMax;
 	protected:
 		virtual m3::Quat LimitRotation(m3::Quat rotation) override;
 

@@ -4,15 +4,52 @@
 #include <sstream>
 
 #define JOINT_NUM 4
+
+
+class Target
+{
+public:
+	Target() {
+		position = m3::Vec3(1, 4, 2);
+	}
+
+	void Update()
+	{
+		float leftMargin = 70;
+		int i = 0;
+		auto topMargin = [](int i) {return 170.0f + i * 30; };
+		position.x = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Target X", TextFormat("%f", (float)position.x), position.x, -10, 10);
+		position.y = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Target Y", TextFormat("%f", (float)position.y), position.y, -10, 10);
+		position.z = GuiSliderBar(Rectangle{ leftMargin, topMargin(i++), 200, 20 }, "Target Z", TextFormat("%f", (float)position.z), position.z, -10, 10);
+	}
+
+	void Draw()
+	{
+		DrawSphereWires(ToVector3(position), 0.1, 10, 10, RAYWHITE);
+		DrawAxis(position, rotation);
+	}
+
+	m3::Transform GetTransform() { return m3::Transform(position, rotation, m3::Vec3()); }
+
+	m3::Vec3 position;
+	m3::Quat rotation;
+};
 // ----------------------------------------------------
 // Global Variables
 // Define the camera to look into our 3d world
 Camera3D g_Camera;
-NJointChain<JOINT_NUM> g_Chain = {};
+Target g_Target = {};
+cik::FABRIKSolver g_FABRIIKSolver = { JOINT_NUM };
+float g_ConvergeSpeed = 5;
+NJointChain<JOINT_NUM> g_Chain = {
+std::vector<m3::Vec3>{ {0, 0, 0}, {0, 2, 0}, {0, 1.5, 0}, {0, 1, 0} }
+};
 int g_ChosedJointIndex = -1;
+
+std::vector<cik::RotationLimit*> g_RotLimits(JOINT_NUM-1);
 cik::RotationLimitHinge g_RotationLimitHinge = {};
 m3::Vec3 g_Eulers[JOINT_NUM] = {};
-bool g_LimitChecked[JOINT_NUM] = { false };
+bool g_LimitChecked = true;
 // ----------------------------------------------------
 static void InitProcess()
 {
@@ -31,19 +68,44 @@ static void InitProcess()
 	SetCameraMode(g_Camera, CAMERA_FREE); // Set a free camera mode
 	SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
 
-	// limit related
-	g_RotationLimitHinge.m_AngleMin = -45;
-	g_RotationLimitHinge.m_AngleMax = 90;
+	// ---------------------------------------------
+	// IK related
+	g_FABRIIKSolver.Resize(4);
+	g_RotLimits[0] = new cik::RotationLimitAngle(45.0f);
+	g_RotLimits[1] = new cik::RotationLimitHinge(-120, 5);
+	g_RotLimits[2] = new cik::RotationLimitHinge(-45, 5);
+	// ---------------------------------------------
 }
 
 static void UpdateProcess()
 {
 	UpdateCamera(&g_Camera);          // Update camera
 	if (IsKeyDown('Z')) g_Camera.target = Vector3{ 0.0f, 0.0f, 0.0f };
+	g_Target.Update();
+	// ui
+	float leftMargin = 70;
+	int i = 0;
+	auto topMargin = [](int i) {return 280.0f + i * 30; };
+	g_LimitChecked = GuiCheckBox(Rectangle{ leftMargin, topMargin(i++), 15, 15 }, "Apply Constraint", g_LimitChecked);
+	// ---------------------------------------------
+	// IK related
+	for (int i = 0; i < g_Chain.m_JointNum; ++i) g_FABRIIKSolver.SetLocalTransform(i, g_Chain.GetLocalTransform(i));
+	
+	if (g_LimitChecked) g_FABRIIKSolver.Solve(g_Target.GetTransform(), g_RotLimits);  // apply limits
+	else  g_FABRIIKSolver.Solve(g_Target.GetTransform());
+	
+	for (int i = 0; i < g_Chain.m_JointNum; ++i)
+	{
+		m3::Transform t = g_FABRIIKSolver.GetLocalTransform(i);
+		m3::Quat q = m3::Nlerp(g_Chain.GetLocalRotation(i), t.rotation, g_ConvergeSpeed * GetFrameTime());
+		g_Chain.SetLocalRotation(i, q);
+	}
+	// ---------------------------------------------
 }
 
 static void Mode3DProcess()
 {
+	g_Target.Draw();
 	g_Chain.Draw(g_ChosedJointIndex);
 
 	if (g_ChosedJointIndex != -1)
@@ -119,19 +181,7 @@ static void DrawProcess()
 		m3::Quat targetQ = m3::QuatFromEulerXYZ(eulerRad);
 
 		g_Chain.SetLocalRotation(g_ChosedJointIndex, targetQ);  // TODO: outer -> inner
-
-		g_LimitChecked[g_ChosedJointIndex] = GuiCheckBox(Rectangle { leftMargin, topMargin(i++), 15, 15 }, "Apply Constraint", g_LimitChecked[g_ChosedJointIndex]);
-		if (g_LimitChecked[g_ChosedJointIndex])
-		{
-			//auto q = g_Hinge.LimitRotation(currLclRot, currGlbRot, parentGlbRot);
-			//g_Chain.SetLocalRotation(g_ChosedJointIndex, q);
-		}
-
-		
-		
 	}
-
-	
 }
 
 int main()
@@ -165,6 +215,7 @@ int main()
 	// De-Initialization
 	//--------------------------------------------------------------------------------------
 	CloseWindow();        // Close window and OpenGL context
+	for (auto p : g_RotLimits) delete p;
 	//--------------------------------------------------------------------------------------
 
 	return 0;

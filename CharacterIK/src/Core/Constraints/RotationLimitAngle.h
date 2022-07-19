@@ -7,9 +7,9 @@ namespace cik
 	class RotationLimitAngle : public RotationLimit
 	{
 	public:
-		RotationLimitAngle();
+		RotationLimitAngle(float swingLimit=45.0f);
 	public:
-		float m_SwingLimit = 45;
+		float m_SwingLimit;
 	protected:
 		virtual m3::Quat LimitRotation(m3::Quat rotation) override;
 	private:

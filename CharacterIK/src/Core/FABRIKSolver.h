@@ -1,6 +1,7 @@
 #pragma once
 #include <Math3D.h>
 #include <vector>
+#include "Constraints/RotationLimit.h"
 
 namespace cik
 {
@@ -14,7 +15,7 @@ namespace cik
 		inline m3::Transform GetLocalTransform(int index) { return m_IKChain[index]; }
 		inline void SetLocalTransform(int index, const m3::Transform& t) { m_IKChain[index] = t; };
 		m3::Transform GetGlobalTranform(int index);
-		bool Solve(const m3::Transform& target);
+		bool Solve(const m3::Transform& target, std::vector<RotationLimit*> limits={0});
 
 		inline int GetNumStemps() { return m_NumStemps; };
 		inline void SeteNumSteps(int numSteps) { m_NumStemps = numSteps; };

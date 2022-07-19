@@ -9,7 +9,7 @@ namespace cik
 	{
 	}
 
-	bool FABRIKSolver::Solve(const m3::Transform& target)
+	bool FABRIKSolver::Solve(const m3::Transform& target, std::vector<RotationLimit*> limits)
 	{
 		if (Size() <= 0) return false;
 		_IKChainToWorld();
@@ -27,6 +27,16 @@ namespace cik
 			}
 			_IterateBackward(goal);
 			_IterateForward(base);
+			for (int j = 0; j < Size(); ++j)
+			{
+				if (j < limits.size() && limits[j])
+				{
+					_WorldToIKChain();
+					m_IKChain[j].rotation = limits[j]->Apply(m_IKChain[j].rotation);
+					_IKChainToWorld();
+				}
+			}
+			
 		}
 
 		_WorldToIKChain();
