@@ -1,4 +1,4 @@
-project "Sandbox"
+project "EulerAngles"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++20"

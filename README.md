@@ -34,11 +34,11 @@ Set a sample project as startup project to run the application.
 
 ```shell
 git pull
-git submodule update --remote
+git submodule update
 ```
 
 ## Sample projects
 
 ### ThreeBoneChain
 
-![ThreeBoneChain](https://github.com/Noluye/CharacterIK/blob/main/doc/gif/Three-Bone-Chain-2022-07-14-18-12-40.gif)
+![ThreeBoneChain](https://github.com/Noluye/CharacterIK/blob/main/docs/gif/Three-Bone-Chain-2022-07-14-18-12-40.gif)

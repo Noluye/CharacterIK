@@ -4,8 +4,8 @@ project "ConstraintSettings"
 	cppdialect "C++20"
 	staticruntime "On"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	targetdir ("../../bin/" .. outputdir .. "/%{prj.name}")
+	objdir ("../../bin-int/" .. outputdir .. "/%{prj.name}")
 
 	defines{ "_CRT_SECURE_NO_WARNINGS" }
 	linkoptions { "-IGNORE:4099" }
